@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KINGDOM TRADING — UGX Target Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#D4A843;--gold-light:#F0C96A;--gold-dim:#9A7820;
+  --bg:#0D0F14;--bg2:#13161F;--bg3:#1A1E2A;--bg4:#222738;--bg5:#2A2F3F;
+  --border:#2A2F3F;--border2:#333849;
+  --text:#E8ECF5;--text2:#8A95B0;--text3:#555F7A;
+  --green:#1EC98A;--red:#E84040;--blue:#4A9EE8;--amber:#E8A820;
+  --teal:#20C8D8;--purple:#9A6AE8;
+}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg3)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.shell{display:flex;flex-direction:column;min-height:100vh;width:100%;}
+
+/* HEADER */
+.header{
+  display:grid;grid-template-columns:1fr auto 1fr;
+  align-items:center;padding:11px 24px 9px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg2);flex-shrink:0;position:relative;
+}
+.header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold-dim),transparent);}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);display:flex;align-items:center;gap:10px}
+.logo-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);flex-shrink:0;}
+.clock-center{text-align:center}
+.clock-time{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;color:var(--text);letter-spacing:3px;line-height:1;text-shadow:0 0 20px rgba(212,168,67,.15);}
+.clock-date{font-size:10px;color:var(--text2);letter-spacing:2px;margin-top:3px;text-transform:uppercase}
+.header-right{display:flex;align-items:center;justify-content:flex-end;}
+.day-block{text-align:right}
+.day-num{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;color:var(--gold)}
+.day-sub{font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+
+/* YEAR BAR */
+.year-bar-section{padding:18px 24px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.year-bar-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.year-bar-label span{font-size:16px;color:var(--text2);letter-spacing:.3px;}
+.year-bar-label strong{color:var(--text);font-weight:700;font-size:17px;}
+.bar-track{height:16px;background:var(--bg4);border-radius:10px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.35);}
+.bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--gold-dim),var(--gold),var(--gold-light));transition:width .8s ease;box-shadow:0 0 14px rgba(212,168,67,.55);}
+
+/* MAIN */
+.main{display:flex;flex:1;padding:14px 20px;gap:12px;overflow-y:auto;}
+.left-panel{flex:1;display:flex;flex-direction:column;gap:12px;}
+
+/* HERO */
+.target-hero{
+  background:var(--bg2);border:1px solid var(--gold-dim);
+  border-radius:10px;padding:18px 22px;position:relative;overflow:hidden;
+  flex:1;
+  display:flex;flex-direction:column;justify-content:center;
+  min-height:300px;
+}
+.target-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.hero-cols{display:grid;grid-template-columns:1fr 1px 1fr 1px 200px;gap:0;align-items:center;height:100%;}
+.hero-divider{background:var(--border2);align-self:stretch;margin:0 22px;}
+.hero-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.hero-value{font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:1;}
+.hero-ugx{font-size:24px;font-weight:300;margin-left:5px;vertical-align:middle;opacity:.6;}
+.hero-sub{margin-top:12px;font-size:13px;color:var(--text2)}
+
+/* DB STATUS BANNER — shown when not connected */
+.db-banner{
+  display:none;
+  align-items:center;gap:10px;
+  background:rgba(232,168,32,.08);border:1px solid rgba(232,168,32,.3);
+  border-radius:8px;padding:10px 14px;margin:10px 20px 0;
+  font-size:11px;color:var(--amber);flex-shrink:0;
+}
+.db-banner.show{display:flex;}
+.db-banner strong{color:var(--gold)}
+.db-banner-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;animation:pulseAmber 1.4s infinite;}
+@keyframes pulseAmber{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(232,168,32,.5)}50%{opacity:.6}70%{box-shadow:0 0 0 5px rgba(232,168,32,0)}}
+
+/* SYNC STATUS */
+.sync-status{
+  position:fixed;top:10px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--border2);border-radius:20px;
+  padding:5px 14px;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;z-index:150;
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.sync-status.show{opacity:1;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulseDot 1s infinite;}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-status.synced .sync-dot{background:var(--green);animation:none;}
+.sync-status.error .sync-dot{background:var(--red);animation:none;}
+
+/* LIVE INDICATOR */
+.live-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(30,201,138,.1);border:1px solid rgba(30,201,138,.25);
+  border-radius:20px;padding:3px 10px;font-size:9px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--green);
+  position:absolute;top:12px;right:14px;
+}
+.live-badge-dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulseDot 1.4s infinite;}
+.live-badge.offline{color:var(--text3);background:rgba(85,95,122,.1);border-color:rgba(85,95,122,.2);}
+.live-badge.offline .live-badge-dot{background:var(--text3);animation:none;}
+
+/* GEAR */
+.edit-toggle{
+  position:fixed;bottom:14px;right:14px;
+  background:var(--gold);color:#000;border:none;
+  border-radius:50%;width:38px;height:38px;font-size:16px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(212,168,67,.4);z-index:100;
+  transition:transform .2s,box-shadow .2s;
+}
+.edit-toggle:hover{transform:scale(1.1) rotate(30deg);box-shadow:0 0 30px rgba(212,168,67,.6);}
+
+/* SETTINGS PANEL */
+.edit-panel{
+  position:fixed;top:0;right:0;width:380px;height:100vh;
+  background:var(--bg2);border-left:1px solid var(--border);
+  z-index:200;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.edit-panel.open{transform:translateX(0)}
+.edit-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.edit-header h2{font-size:13px;font-weight:600;color:var(--text);letter-spacing:1px;}
+.edit-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text2);line-height:1;transition:color .2s;}
+.edit-close:hover{color:var(--text);}
+.edit-body{padding:14px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:16px;}
+.edit-section-title{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.edit-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.edit-row label{font-size:11px;color:var(--text2);min-width:90px;}
+.edit-input{
+  background:var(--bg4);border:1px solid var(--border2);border-radius:6px;
+  padding:5px 9px;font-size:11px;color:var(--text);
+  font-family:'JetBrains Mono',monospace;width:130px;text-align:right;outline:none;
+  transition:border-color .2s;
+}
+.edit-input:focus{border-color:var(--gold-dim);}
+.edit-note{font-size:10px;color:var(--text3);line-height:1.6;background:var(--bg3);border-radius:6px;padding:8px 10px;border:1px solid var(--border);}
+.edit-note.error-note{color:var(--red);border-color:rgba(232,64,64,.3);background:rgba(232,64,64,.05);}
+.edit-note.success-note{color:var(--green);border-color:rgba(30,201,138,.3);background:rgba(30,201,138,.05);}
+
+.apply-btn{
+  width:100%;padding:11px;border-radius:8px;border:none;
+  background:var(--gold);color:#000;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s,box-shadow .2s;
+  letter-spacing:1px;text-transform:uppercase;
+}
+.apply-btn:hover{opacity:.9;box-shadow:0 4px 16px rgba(212,168,67,.3);}
+.apply-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.test-btn{
+  width:100%;padding:9px;border-radius:8px;border:1px solid var(--border2);
+  background:transparent;color:var(--text2);font-size:11px;font-weight:500;
+  cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;
+  letter-spacing:1px;text-transform:uppercase;
+}
+.test-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+.reset-btn{
+  width:100%;padding:9px;border-radius:8px;border:1px solid var(--border2);
+  background:transparent;color:var(--text3);font-size:11px;font-weight:500;
+  cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;
+  letter-spacing:1px;text-transform:uppercase;
+}
+.reset-btn:hover{border-color:var(--red);color:var(--red);}
+
+.unit-toggle-setting{display:flex;align-items:center;justify-content:space-between;}
+.unit-toggle-setting label{font-size:11px;color:var(--text2);}
+.unit-toggle{display:flex;background:var(--bg4);border:1px solid var(--border2);border-radius:7px;overflow:hidden;}
+.unit-btn{padding:6px 16px;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .2s;font-weight:500;}
+.unit-btn.active{background:var(--gold);color:#000;}
+
+.save-toast{
+  position:fixed;bottom:60px;right:14px;
+  background:var(--green);color:#000;font-size:11px;font-weight:600;
+  padding:7px 14px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;
+  opacity:0;transform:translateY(8px);transition:all .3s;z-index:300;
+  pointer-events:none;
+}
+.save-toast.show{opacity:1;transform:translateY(0);}
+
+/* DB STATUS in settings */
+.db-status-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:8px 10px;font-size:10px;
+}
+.db-status-indicator{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.db-status-indicator.connected{background:var(--green);box-shadow:0 0 6px rgba(30,201,138,.5);}
+.db-status-indicator.disconnected{background:var(--red);}
+.db-status-indicator.checking{background:var(--amber);animation:pulseDot 1s infinite;}
+.db-status-text{color:var(--text2);flex:1;}
+.db-status-text strong{color:var(--text);}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  html, body { overflow: auto; height: auto; }
+  .shell { min-height: 100vh; height: auto; overflow: visible; }
+  .header {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 6px;
+    padding: 10px 14px 8px;
+  }
+  .logo { font-size: 13px; letter-spacing: 1px; grid-column: 1; grid-row: 1; }
+  .header-right { grid-column: 2; grid-row: 1; }
+  .clock-center { grid-column: 1 / -1; grid-row: 2; }
+  .clock-time { font-size: 22px; letter-spacing: 2px; }
+  .clock-date { font-size: 9px; letter-spacing: 1px; }
+  .day-num { font-size: 22px; }
+  .year-bar-section { padding: 12px 14px; }
+  .year-bar-label span { font-size: 13px; }
+  .main { padding: 10px 10px; }
+  .target-hero { padding: 14px 12px; min-height: unset; }
+  .hero-cols {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto auto auto;
+  }
+  .hero-divider { height: 1px; width: 100%; margin: 10px 0 !important; align-self: auto; }
+  .hero-value { font-size: 52px; }
+  .hero-ugx { font-size: 14px; }
+  .hero-label { font-size: 8px; letter-spacing: 1px; }
+  .hero-sub { font-size: 11px; margin-top: 6px; }
+  .col-inner { text-align: left !important; }
+  .edit-panel { width: 100%; }
+  .db-banner { margin: 8px 10px 0; font-size: 10px; }
+}
+@media (max-width: 400px) {
+  .hero-value { font-size: 38px; }
+  .clock-time { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo"><div class="logo-dot"></div>KINGDOM TRADING TARGET DASHBOARD<span style="color:var(--text2);font-size:16px;letter-spacing:1px;">TRACKER</span></div>
+    <div class="clock-center">
+      <div class="clock-time" id="clock">00:00:00</div>
+      <div class="clock-date" id="dateStr">—</div>
+    </div>
+    <div class="header-right">
+      <div class="day-block">
+        <div class="day-num" id="dayNum">—</div>
+        <div class="day-sub">of <span id="daysTotal">365</span> days</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- YEAR BAR -->
+  <div class="year-bar-section">
+    <div class="year-bar-label">
+      <span>Year Progress — <strong id="yearProg">0%</strong> elapsed</span>
+      <span id="daysLeft">— days remaining</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="yearBarFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- DB WARNING BANNER (shows when Supabase is not working) -->
+  <div class="db-banner" id="dbBanner">
+    <div class="db-banner-dot"></div>
+    <span>⚠ <strong>Local data only</strong> — changes won't sync to other browsers. Open ⚙ Settings to configure database connection.</span>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="left-panel">
+      <div class="target-hero">
+        <div class="live-badge" id="liveBadge">
+          <div class="live-badge-dot"></div>
+          <span id="liveBadgeText">Connecting…</span>
+        </div>
+
+        <div class="hero-cols">
+
+          <div class="col-inner">
+            <div class="hero-label" style="color:var(--gold-dim)">&#9670; General Year Target</div>
+            <div style="display:flex;align-items:baseline">
+              <div class="hero-value" style="color:var(--gold);text-shadow:0 0 40px rgba(212,168,67,.35)" id="yearTargetDisp">—</div>
+              <span class="hero-ugx" style="color:var(--gold)">UGX</span>
+            </div>
+            <div class="hero-sub">Total of Monthly Targets</div>
+          </div>
+
+          <div class="hero-divider"></div>
+
+          <div class="col-inner" style="padding-left:0">
+            <div class="hero-label" style="color:rgba(30,201,138,.65)">&#9670; Year Actual Achieved</div>
+            <div style="display:flex;align-items:baseline">
+              <div class="hero-value" style="color:var(--green);text-shadow:0 0 40px rgba(30,201,138,.3)" id="yearActualDisp">—</div>
+              <span class="hero-ugx" style="color:var(--green)">UGX</span>
+            </div>
+            <div class="hero-sub">Achievement: <span id="yearPctDisp" style="color:var(--teal)">—</span></div>
+          </div>
+
+          <div class="hero-divider"></div>
+
+          <div class="col-inner" style="text-align:center;padding-left:0">
+            <div style="font-size:8px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;">Days Elapsed</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:1;color:var(--gold);text-shadow:0 0 24px rgba(212,168,67,.3);" id="daysElapsedBig">—</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:4px;">of the fiscal year</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sync Status -->
+<div class="sync-status" id="syncStatus">
+  <div class="sync-dot"></div>
+  <span id="syncMsg">Syncing…</span>
+</div>
+
+<button class="edit-toggle" onclick="toggleEdit()" title="Settings">&#9881;</button>
+<div class="save-toast" id="saveToast">✓ Saved</div>
+
+<!-- SETTINGS PANEL -->
+<div class="edit-panel" id="editPanel">
+  <div class="edit-header">
+    <h2>&#9881; Settings &amp; Targets</h2>
+    <button class="edit-close" onclick="toggleEdit()">&#10005;</button>
+  </div>
+  <div class="edit-body">
+
+    <!-- DB STATUS -->
+    <div>
+      <div class="edit-section-title">Database Connection</div>
+      <div class="db-status-row" id="dbStatusRow">
+        <div class="db-status-indicator checking" id="dbStatusDot"></div>
+        <div class="db-status-text" id="dbStatusText">Checking connection…</div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="edit-note" id="dbNote">
+        Data is shared across all browsers &amp; users via Supabase.<br>
+        If the status shows <strong style="color:var(--red)">Disconnected</strong>, paste the correct anon key below.
+      </div>
+      <div style="height:8px"></div>
+      <div class="edit-row">
+        <label>Anon Key</label>
+        <input class="edit-input" id="ei_anonKey" type="password" placeholder="eyJhbGci…" style="width:190px;font-size:9px;"/>
+      </div>
+      <button class="test-btn" onclick="testConnection()" style="margin-bottom:4px;">&#9654; Test Connection</button>
+      <div class="edit-note" id="testResult" style="display:none;margin-top:6px;"></div>
+    </div>
+
+    <div>
+      <div class="edit-section-title">Display Unit</div>
+      <div class="unit-toggle-setting">
+        <label>Show values in</label>
+        <div class="unit-toggle">
+          <button class="unit-btn active" id="btnM" onclick="setUnit('M')">Million</button>
+          <button class="unit-btn" id="btnB" onclick="setUnit('B')">Billion</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="edit-section-title">Annual Target Override</div>
+      <div class="edit-row">
+        <label>Year Target</label>
+        <input class="edit-input" id="ei_year" type="number" step="0.01" min="0" value="" placeholder="Auto-sum"/>
+      </div>
+      <div class="edit-note">Leave blank to auto-sum monthly targets. Enter in Billions UGX.</div>
+    </div>
+
+    <div>
+      <div class="edit-section-title">Monthly Targets (Billions UGX)</div>
+      <div id="monthInputs"></div>
+    </div>
+
+    <div>
+      <div class="edit-section-title">Monthly Actuals (Billions UGX)</div>
+      <p class="edit-note" style="margin-bottom:8px;">Only fill in completed months.</p>
+      <div id="actualInputs"></div>
+    </div>
+
+    <div>
+      <div class="edit-section-title">Quarterly Overrides (optional)</div>
+      <p class="edit-note" style="margin-bottom:8px;">Leave blank to auto-sum from monthly values.</p>
+      <div id="qInputs"></div>
+    </div>
+
+    <button class="apply-btn" id="applyBtn" onclick="applyAndClose()">&#10003; Apply &amp; Save to Database</button>
+    <button class="reset-btn" onclick="resetToDefaults()">&#8635; Reset to Defaults</button>
+  </div>
+</div>
+
+
+<!-- Supabase SDK — exact same pattern as KTLSALES -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIG — mirrors KTLSALES exactly:
+//  const sb = supabase.createClient(URL, ANON_KEY)
+//  then sb.from('table').select / upsert / etc.
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL  = "https://bccqhwsbhgssoapiqljy.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjY3Fod3NiaGdzc29hcGlxbGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNDM3MzQsImV4cCI6MjA4OTgxOTczNH0.a7GeQHwTJUs4yH5iYa8e8NzJYhle2iRADmLfLnTWb8Q";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const STORAGE_KEY = 'kingdom_trading_dashboard_v2';
+
+const MONTHS   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const QS       = ['Q1','Q2','Q3','Q4'];
+const Q_MONTHS = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
+
+const DEFAULTS = {
+  unit: 'M',
+  mTargets:  [0.80,0.75,0.90,0.85,0.88,0.90,0.87,0.86,0.88,0.87,0.85,0.89],
+  mActuals:  [0,0,0,0,0,0,0,0,0,0,0,0],
+  qOverrides:[null,null,null,null],
+  yearTargetOverride: null
+};
+
+let unit, mTargets, mActuals, qOverrides, yearTargetOverride;
+let _dbConnected = false;
+let _pollInterval = null;
+let _lastUpdatedAt = null;
+
+// ── Connection status UI ────────────────────────────
+function setLiveBadge(state) {
+  const badge  = document.getElementById('liveBadge');
+  const text   = document.getElementById('liveBadgeText');
+  const banner = document.getElementById('dbBanner');
+  if (state === 'live') {
+    badge.className = 'live-badge';
+    text.textContent = 'Live Sync';
+    banner.classList.remove('show');
+    _dbConnected = true;
+    updateDBStatusUI(true);
+  } else if (state === 'offline') {
+    badge.className = 'live-badge offline';
+    text.textContent = 'Local Only';
+    banner.classList.add('show');
+    _dbConnected = false;
+    updateDBStatusUI(false);
+  } else {
+    badge.className = 'live-badge offline';
+    text.textContent = 'Connecting…';
+  }
+}
+
+function updateDBStatusUI(connected) {
+  const dot  = document.getElementById('dbStatusDot');
+  const text = document.getElementById('dbStatusText');
+  if (!dot) return;
+  if (connected) {
+    dot.className  = 'db-status-indicator connected';
+    text.innerHTML = '<strong style="color:var(--green)">Connected</strong> — data syncs across all browsers in real time';
+  } else {
+    dot.className  = 'db-status-indicator disconnected';
+    text.innerHTML = '<strong style="color:var(--red)">Disconnected</strong> — changes save locally only (other browsers won\'t see them)';
+  }
+}
+
+function showSync(state, msg) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status show ' + state;
+  document.getElementById('syncMsg').textContent = msg;
+  if (state !== 'syncing') setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Load from Supabase — using sb.from() like KTLSALES ──
+async function loadFromDB() {
+  showSync('syncing', 'Loading from database…');
+  try {
+    // Same pattern as KTLSALES: sb.from('table').select('*').eq('col', val)
+    const { data, error } = await sb
+      .from('dashboard_settings')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      // No row yet — insert defaults on first use
+      console.warn('No row found — inserting defaults');
+      loadFromLocalStorage();
+      await saveToDB(true);
+      setLiveBadge('live');
+      startPolling();
+      return;
+    }
+
+    applyDBRow(data);
+    saveToLocalStorage();
+    setLiveBadge('live');
+    showSync('synced', 'Loaded ✓');
+    startPolling();
+
+  } catch(e) {
+    console.error('DB load error:', e);
+    loadFromLocalStorage();
+    setLiveBadge('offline');
+    showSync('error', 'Cannot reach DB — using local data');
+  }
+}
+
+function applyDBRow(data) {
+  unit               = data.unit                ?? DEFAULTS.unit;
+  mTargets           = data.m_targets           ?? [...DEFAULTS.mTargets];
+  mActuals           = data.m_actuals           ?? [...DEFAULTS.mActuals];
+  qOverrides         = data.q_overrides         ?? [...DEFAULTS.qOverrides];
+  yearTargetOverride = data.year_target_override ?? DEFAULTS.yearTargetOverride;
+  _lastUpdatedAt     = data.updated_at          ?? null;
+}
+
+// ── Polling — checks every 15s for changes from other browsers ──
+function startPolling() {
+  if (_pollInterval) return;
+  _pollInterval = setInterval(async () => {
+    if (!_dbConnected) return;
+    try {
+      const { data } = await sb
+        .from('dashboard_settings')
+        .select('updated_at')
+        .eq('id', 1)
+        .maybeSingle();
+      if (data && data.updated_at !== _lastUpdatedAt) {
+        // Something changed — pull full data
+        const { data: full } = await sb
+          .from('dashboard_settings')
+          .select('*')
+          .eq('id', 1)
+          .maybeSingle();
+        if (full) {
+          applyDBRow(full);
+          saveToLocalStorage();
+          renderSummary();
+          showSync('synced', 'Updated from another browser');
+        }
+      }
+    } catch(e) { console.warn('Poll error:', e); }
+  }, 15000);
+}
+
+// ── Save to Supabase — using sb.from().upsert() like KTLSALES ──
+async function saveToDB(silent = false) {
+  if (!silent) showSync('syncing', 'Saving to database…');
+
+  const payload = {
+    id:                  1,
+    unit,
+    m_targets:           mTargets,
+    m_actuals:           mActuals,
+    q_overrides:         qOverrides,
+    year_target_override: yearTargetOverride,
+    updated_at:          new Date().toISOString()
+  };
+
+  saveToLocalStorage();
+
+  try {
+    // Same pattern as KTLSALES: sb.from('table').upsert(payload)
+    const { data, error } = await sb
+      .from('dashboard_settings')
+      .upsert(payload, { onConflict: 'id' })
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) _lastUpdatedAt = data.updated_at;
+
+    if (!silent) {
+      showSync('synced', 'Saved to database ✓');
+      showToast('Saved & Synced to all browsers');
+    }
+    setLiveBadge('live');
+    if (!_pollInterval) startPolling();
+
+  } catch(e) {
+    console.error('DB save error:', e);
+    if (!silent) {
+      showSync('error', 'DB save failed — saved locally only');
+      showToast('Saved locally only');
+    }
+    setLiveBadge('offline');
+  }
+}
+
+// ── Local Storage fallback ──────────────────────────
+function saveToLocalStorage() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({unit,mTargets,mActuals,qOverrides,yearTargetOverride})); } catch(e) {}
+}
+
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { applyDefaults(); return; }
+    const d = JSON.parse(raw);
+    unit               = d.unit               ?? DEFAULTS.unit;
+    mTargets           = d.mTargets           ?? [...DEFAULTS.mTargets];
+    mActuals           = d.mActuals           ?? [...DEFAULTS.mActuals];
+    qOverrides         = d.qOverrides         ?? [...DEFAULTS.qOverrides];
+    yearTargetOverride = d.yearTargetOverride ?? DEFAULTS.yearTargetOverride;
+  } catch(e) { applyDefaults(); }
+}
+
+function applyDefaults() {
+  unit               = DEFAULTS.unit;
+  mTargets           = [...DEFAULTS.mTargets];
+  mActuals           = [...DEFAULTS.mActuals];
+  qOverrides         = [...DEFAULTS.qOverrides];
+  yearTargetOverride = DEFAULTS.yearTargetOverride;
+}
+
+// ── Business logic ──────────────────────────────────
+function getQTarget(qi){ return qOverrides[qi]!==null ? qOverrides[qi] : Q_MONTHS[qi].reduce((s,i)=>s+mTargets[i],0); }
+function getQActual(qi){ return Q_MONTHS[qi].reduce((s,i)=>s+mActuals[i],0); }
+function getYearTarget(){ return yearTargetOverride!==null ? yearTargetOverride : QS.reduce((_,__,i)=>_+getQTarget(i),0); }
+function getYearActual(){ return mActuals.reduce((a,b)=>a+b,0); }
+
+function fmtVal(b){
+  if(unit==='B') return b.toFixed(2)+'B';
+  return (b*1000).toFixed(0)+'M';
+}
+
+function setUnit(u){
+  unit = u;
+  document.getElementById('btnM').classList.toggle('active',u==='M');
+  document.getElementById('btnB').classList.toggle('active',u==='B');
+  saveToLocalStorage();
+  renderSummary();
+  if(_dbConnected) saveToDB(true);
+}
+
+// ── CLOCK ──────────────────────────────────────────
+function tickClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = hh+':'+mm+':'+ss;
+  document.getElementById('dateStr').textContent = now.toLocaleDateString('en-UG',{
+    weekday:'long',year:'numeric',month:'long',day:'numeric'
+  }).toUpperCase();
+
+  const isLeap = y => ((y%4===0)&&(y%100!==0))||(y%400===0);
+  const total  = isLeap(now.getFullYear()) ? 366 : 365;
+  const start  = new Date(now.getFullYear(), 0, 1);
+  const dayN   = Math.ceil((now - start) / 86400000) + 1;
+
+  document.getElementById('dayNum').textContent         = dayN;
+  document.getElementById('daysTotal').textContent      = total;
+  document.getElementById('daysElapsedBig').textContent = dayN;
+  document.getElementById('daysLeft').textContent       = (total - dayN) + ' days remaining';
+
+  const pct = ((dayN / total) * 100).toFixed(1);
+  document.getElementById('yearProg').textContent    = pct + '%';
+  document.getElementById('yearBarFill').style.width = pct + '%';
+}
+
+// ── SUMMARY ────────────────────────────────────────
+function renderSummary() {
+  document.getElementById('btnM').classList.toggle('active', unit==='M');
+  document.getElementById('btnB').classList.toggle('active', unit==='B');
+  const yearT = getYearTarget();
+  const yearA = getYearActual();
+  document.getElementById('yearTargetDisp').textContent = fmtVal(yearT);
+  document.getElementById('yearActualDisp').textContent = yearA > 0 ? fmtVal(yearA) : '—';
+  const yPct = yearT > 0 ? ((yearA / yearT) * 100).toFixed(1) + '%' : '—';
+  document.getElementById('yearPctDisp').textContent = yearA > 0 ? yPct : '—';
+}
+
+// ── TEST CONNECTION ─────────────────────────────────
+async function testConnection() {
+  const testResult = document.getElementById('testResult');
+  testResult.style.display = 'block';
+  testResult.className     = 'edit-note';
+  testResult.textContent   = '⟳ Testing connection…';
+
+  try {
+    // Direct sb.from() test — same as KTLSALES does for every query
+    const { data, error } = await sb
+      .from('dashboard_settings')
+      .select('id')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    testResult.className   = 'edit-note success-note';
+    testResult.textContent = '✓ Connected! Row ' + (data ? 'found — data will sync when you Apply.' : 'not found yet — will be created on first save.');
+    document.getElementById('dbStatusDot').className  = 'db-status-indicator connected';
+    document.getElementById('dbStatusText').innerHTML = '<strong style="color:var(--green)">Connected</strong> — ready to sync';
+    _dbConnected = true;
+
+  } catch(e) {
+    testResult.className   = 'edit-note error-note';
+    testResult.textContent = '✗ Connection failed: ' + (e.message || String(e));
+    console.error('Test connection error:', e);
+  }
+}
+
+// ── SETTINGS PANEL ──────────────────────────────────
+function buildEditPanel() {
+  document.getElementById('ei_year').value = yearTargetOverride !== null ? yearTargetOverride.toFixed(2) : '';
+
+  document.getElementById('monthInputs').innerHTML = MONTHS.map((m,i)=>`
+    <div class="edit-row"><label>${m.slice(0,3)}</label>
+    <input class="edit-input" id="mi_${i}" type="number" step="0.001" min="0" value="${mTargets[i].toFixed(3)}"/></div>`).join('');
+
+  document.getElementById('actualInputs').innerHTML = MONTHS.map((m,i)=>`
+    <div class="edit-row"><label>${m.slice(0,3)}</label>
+    <input class="edit-input" id="ai_${i}" type="number" step="0.001" min="0" value="${mActuals[i]>0?mActuals[i].toFixed(3):''}" placeholder="0.000"/></div>`).join('');
+
+  document.getElementById('qInputs').innerHTML = QS.map((q,i)=>`
+    <div class="edit-row"><label>${q}</label>
+    <input class="edit-input" id="qi_${i}" type="number" step="0.001" min="0" placeholder="Auto" value="${qOverrides[i]!==null?qOverrides[i].toFixed(3):''}"/></div>`).join('');
+
+  updateDBStatusUI(_dbConnected);
+}
+
+function toggleEdit() {
+  const p = document.getElementById('editPanel');
+  if (!p.classList.contains('open')) buildEditPanel();
+  p.classList.toggle('open');
+}
+
+async function applyAndClose() {
+  const btn = document.getElementById('applyBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ Saving…';
+
+  const yrVal = parseFloat(document.getElementById('ei_year').value);
+  yearTargetOverride = isNaN(yrVal) ? null : yrVal;
+
+  MONTHS.forEach((_,i) => {
+    const v = parseFloat(document.getElementById(`mi_${i}`).value);
+    mTargets[i] = isNaN(v) ? mTargets[i] : v;
+  });
+  MONTHS.forEach((_,i) => {
+    const raw = document.getElementById(`ai_${i}`).value;
+    mActuals[i] = raw === '' ? 0 : (parseFloat(raw) || 0);
+  });
+  QS.forEach((_,i) => {
+    const raw = document.getElementById(`qi_${i}`).value;
+    qOverrides[i] = raw === '' ? null : (parseFloat(raw) || null);
+  });
+
+  document.getElementById('editPanel').classList.remove('open');
+  renderSummary();
+  await saveToDB();
+
+  btn.disabled = false;
+  btn.textContent = '✓ Apply & Save to Database';
+}
+
+async function resetToDefaults() {
+  if (!confirm('Reset all targets and actuals to defaults? This cannot be undone.')) return;
+  applyDefaults();
+  document.getElementById('editPanel').classList.remove('open');
+  renderSummary();
+  await saveToDB();
+  showToast('Reset to defaults');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('saveToast');
+  t.textContent = '✓ ' + (msg || 'Saved');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── BOOT ────────────────────────────────────────────
+tickClock();
+setInterval(tickClock, 1000);
+
+applyDefaults();
+renderSummary();
+setLiveBadge('connecting');
+
+loadFromDB().then(() => renderSummary());
+
+setInterval(renderSummary, 60000);
+</script>
+</body>
+</html>
